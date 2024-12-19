@@ -53,7 +53,7 @@ async function initializeAvatarSession() {
 
     sessionData = await avatar.createStartAvatar({
       quality: AvatarQuality.Medium,
-      avatarName: "Dexter_Suit_Front_public",
+      avatarName: "dextersuitfront",
       language: "English",
     });
 
