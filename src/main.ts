@@ -1,22 +1,15 @@
-import StreamingAvatar, {
-  AvatarQuality,
-  StreamingEvents,
-} from "@heygen/streaming-avatar";
-
-
+import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
 import { OpenAIAssistant } from "./openai-assistant";
 
 let openaiAssistant: OpenAIAssistant | null = null;
 
-
 // DOM elements
 const videoElement = document.getElementById("avatarVideo") as HTMLVideoElement;
-const startButton = document.getElementById(
-  "startSession"
-) as HTMLButtonElement;
+const startButton = document.getElementById("startSession") as HTMLButtonElement;
 const endButton = document.getElementById("endSession") as HTMLButtonElement;
 const speakButton = document.getElementById("speakButton") as HTMLButtonElement;
 const userInput = document.getElementById("userInput") as HTMLInputElement;
+const languageSelect = document.getElementById("languageSelect") as HTMLSelectElement;
 
 let avatar: StreamingAvatar | null = null;
 let sessionData: any = null;
@@ -37,7 +30,6 @@ async function fetchAccessToken(): Promise<string> {
 }
 
 // Initialize streaming avatar session
-// Initialize streaming avatar session
 async function initializeAvatarSession() {
   // Disable start button immediately to prevent double clicks
   startButton.disabled = true;
@@ -51,10 +43,11 @@ async function initializeAvatarSession() {
     openaiAssistant = new OpenAIAssistant(openaiApiKey);
     await openaiAssistant.initialize();
 
+    const selectedLanguage = languageSelect.value;  // Get selected language from dropdown
     sessionData = await avatar.createStartAvatar({
       quality: AvatarQuality.Medium,
       avatarName: "Dexter_Lawyer_Sitting_public",
-      language: "English",
+      language: selectedLanguage,
     });
 
     console.log("Session data:", sessionData);
@@ -114,8 +107,39 @@ async function handleSpeak() {
   }
 }
 
-
 // Event listeners for buttons
 startButton.addEventListener("click", initializeAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
 speakButton.addEventListener("click", handleSpeak);
+
+// Add language options to the dropdown dynamically
+const languages = [
+  "English",
+  "Spanish",
+  "French",
+  "German",
+  "Italian",
+  "Portuguese",
+  "Chinese",
+  "Japanese",
+  "Russian",
+  "Arabic",
+  "Hindi",
+  "Korean",
+  "Dutch",
+  "Turkish",
+  "Swedish",
+  "Norwegian",
+  "Polish",
+  "Czech",
+  "Greek",
+  "Hungarian",
+];
+
+languages.forEach((language) => {
+  const option = document.createElement("option");
+  option.value = language;
+  option.textContent = language;
+  languageSelect.appendChild(option);
+});
+
