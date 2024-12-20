@@ -99,13 +99,20 @@ async function terminateAvatarSession() {
 
 // Handle speaking event
 async function handleSpeak() {
-  if (avatar && userInput.value) {
-    await avatar.speak({
-      text: userInput.value,
-    });
+  if (avatar && openaiAssistant && userInput.value) {
+    try {
+      const response = await openaiAssistant.getResponse(userInput.value);
+      await avatar.speak({
+        text: response,
+        taskType: TaskType.REPEAT,
+      });
+    } catch (error) {
+      console.error("Error getting response:", error);
+    }
     userInput.value = ""; // Clear input after speaking
   }
 }
+
 
 // Event listeners for buttons
 startButton.addEventListener("click", initializeAvatarSession);
