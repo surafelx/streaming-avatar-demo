@@ -1,4 +1,4 @@
-import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
+import StreamingAvatar, { AvatarQuality, StreamingEvents, TaskType } from "@heygen/streaming-avatar";
 import { OpenAIAssistant } from "./openai-assistant";
 
 let openaiAssistant: OpenAIAssistant | null = null;
