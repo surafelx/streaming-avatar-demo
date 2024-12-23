@@ -10,7 +10,6 @@ let openaiAssistant: OpenAIAssistant | null = null;
 // Audio recording and analysis variables
 let mediaRecorder: MediaRecorder | null = null;
 const audioChunks: Blob[] = [];
-let isSpeaking = false;
 
 // DOM elements
 const videoElement = document.getElementById("avatarVideo") as HTMLVideoElement;
@@ -19,7 +18,9 @@ const startButton = document.getElementById(
 ) as HTMLButtonElement;
 const endButton = document.getElementById("endSession") as HTMLButtonElement;
 const speakButton = document.getElementById("speakButton") as HTMLButtonElement;
-const userSpeakButton = document.getElementById("userSpeakButton") as HTMLButtonElement;
+const userSpeakButton = document.getElementById(
+  "userSpeakButton"
+) as HTMLButtonElement;
 const userInput = document.getElementById("userInput") as HTMLInputElement;
 const languageSelect = document.getElementById(
   "languageSelect"
@@ -131,7 +132,7 @@ async function handleSpeak() {
 async function handleStartSpeaking() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const audioContext = new (window.AudioContext)();
+    const audioContext = new window.AudioContext();
     const mediaStreamSource = audioContext.createMediaStreamSource(stream);
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 512;
@@ -157,7 +158,6 @@ async function handleStartSpeaking() {
     };
 
     mediaRecorder.start();
-    isSpeaking = true;
 
     const checkSilence = () => {
       analyser.getByteFrequencyData(dataArray);
@@ -190,14 +190,15 @@ async function handleStopSpeaking() {
   if (mediaRecorder) {
     mediaRecorder.stop();
     mediaRecorder = null;
-    isSpeaking = false;
   }
 }
 
 // Transcribe audio and generate response
 async function transcribeAudio(audioBlob: Blob) {
   try {
-    const audioFile = new File([audioBlob], "recording.wav", { type: "audio/wav" });
+    const audioFile = new File([audioBlob], "recording.wav", {
+      type: "audio/wav",
+    });
     const response = await openaiAssistant!.transcribeAudio(audioFile);
     const transcription = response;
 
@@ -213,7 +214,6 @@ startButton.addEventListener("click", initializeAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
 speakButton.addEventListener("click", handleSpeak);
 userSpeakButton.addEventListener("click", handleStartSpeaking);
-
 
 // Add language options to the dropdown dynamically
 const languages = [
@@ -250,4 +250,32 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeAvatarSession();
 });
 
+// Listen for language selection changes
+languageSelect.addEventListener("change", async () => {
+  try {
+    // Disable buttons during session restart
+    startButton.disabled = true;
+    endButton.disabled = true;
+    userSpeakButton.disabled = true;
 
+    console.log("Language changed to:", languageSelect.value);
+
+    // Terminate current session
+    if (avatar && sessionData) {
+      console.log("Terminating current session...");
+      await terminateAvatarSession();
+    }
+
+    // Reinitialize session with the new language
+    console.log("Reinitializing session with new language...");
+    await initializeAvatarSession();
+
+    console.log(
+      "Session restarted successfully with language:",
+      languageSelect.value
+    );
+  } catch (error) {
+    console.error("Error restarting session:", error);
+    startButton.disabled = false; // Re-enable start button in case of error
+  }
+});
