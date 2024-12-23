@@ -1,15 +1,29 @@
-import StreamingAvatar, { AvatarQuality, StreamingEvents, TaskType } from "@heygen/streaming-avatar";
+import StreamingAvatar, {
+  AvatarQuality,
+  StreamingEvents,
+  TaskType,
+} from "@heygen/streaming-avatar";
 import { OpenAIAssistant } from "./openai-assistant";
 
 let openaiAssistant: OpenAIAssistant | null = null;
 
+// Audio recording and analysis variables
+let mediaRecorder: MediaRecorder | null = null;
+const audioChunks: Blob[] = [];
+let isSpeaking = false;
+
 // DOM elements
 const videoElement = document.getElementById("avatarVideo") as HTMLVideoElement;
-const startButton = document.getElementById("startSession") as HTMLButtonElement;
+const startButton = document.getElementById(
+  "startSession"
+) as HTMLButtonElement;
 const endButton = document.getElementById("endSession") as HTMLButtonElement;
 const speakButton = document.getElementById("speakButton") as HTMLButtonElement;
+const userSpeakButton = document.getElementById("userSpeakButton") as HTMLButtonElement;
 const userInput = document.getElementById("userInput") as HTMLInputElement;
-const languageSelect = document.getElementById("languageSelect") as HTMLSelectElement;
+const languageSelect = document.getElementById(
+  "languageSelect"
+) as HTMLSelectElement;
 
 let avatar: StreamingAvatar | null = null;
 let sessionData: any = null;
@@ -43,7 +57,7 @@ async function initializeAvatarSession() {
     openaiAssistant = new OpenAIAssistant(openaiApiKey);
     await openaiAssistant.initialize();
 
-    const selectedLanguage = languageSelect.value;  // Get selected language from dropdown
+    const selectedLanguage = languageSelect.value; // Get selected language from dropdown
     sessionData = await avatar.createStartAvatar({
       quality: AvatarQuality.Medium,
       avatarName: "Dexter_Lawyer_Sitting_public",
@@ -54,6 +68,7 @@ async function initializeAvatarSession() {
 
     // Enable end button
     endButton.disabled = false;
+    userSpeakButton.disabled = false;
 
     avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
     avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
@@ -113,11 +128,92 @@ async function handleSpeak() {
   }
 }
 
+async function handleStartSpeaking() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audioContext = new (window.AudioContext)();
+    const mediaStreamSource = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
+    analyser.fftSize = 512;
+    const bufferLength = analyser.fftSize;
+    const dataArray = new Uint8Array(bufferLength);
+
+    mediaStreamSource.connect(analyser);
+
+    let silenceStart: number | null = null;
+    const silenceTimeout = 2000;
+    let silenceDetected = false;
+
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+      audioChunks.length = 0;
+      transcribeAudio(audioBlob);
+    };
+
+    mediaRecorder.start();
+    isSpeaking = true;
+
+    const checkSilence = () => {
+      analyser.getByteFrequencyData(dataArray);
+      const avgVolume = dataArray.reduce((a, b) => a + b) / bufferLength;
+      const silenceThreshold = 20;
+
+      if (avgVolume < silenceThreshold) {
+        if (!silenceStart) silenceStart = Date.now();
+
+        if (Date.now() - silenceStart >= silenceTimeout && !silenceDetected) {
+          silenceDetected = true;
+          handleStopSpeaking();
+          audioContext.close();
+          stream.getTracks().forEach((track) => track.stop());
+        }
+      } else {
+        silenceStart = null;
+      }
+
+      if (!silenceDetected) requestAnimationFrame(checkSilence);
+    };
+
+    checkSilence();
+  } catch (error) {
+    console.error("Error accessing microphone:", error);
+  }
+}
+
+async function handleStopSpeaking() {
+  if (mediaRecorder) {
+    mediaRecorder.stop();
+    mediaRecorder = null;
+    isSpeaking = false;
+  }
+}
+
+// Transcribe audio and generate response
+async function transcribeAudio(audioBlob: Blob) {
+  try {
+    const audioFile = new File([audioBlob], "recording.wav", { type: "audio/wav" });
+    const response = await openaiAssistant!.transcribeAudio(audioFile);
+    const transcription = response;
+
+    const aiResponse = await openaiAssistant!.getResponse(transcription);
+    await avatar!.speak({ text: aiResponse, taskType: TaskType.REPEAT });
+  } catch (error) {
+    console.error("Error transcribing audio:", error);
+  }
+}
 
 // Event listeners for buttons
 startButton.addEventListener("click", initializeAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
 speakButton.addEventListener("click", handleSpeak);
+userSpeakButton.addEventListener("click", handleStartSpeaking);
+
 
 // Add language options to the dropdown dynamically
 const languages = [
@@ -149,4 +245,9 @@ languages.forEach((language) => {
   option.textContent = language;
   languageSelect.appendChild(option);
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+  initializeAvatarSession();
+});
+
 

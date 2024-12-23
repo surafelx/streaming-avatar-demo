@@ -10,16 +10,18 @@ export class OpenAIAssistant {
   }
 
   async initialize(
-    instructions: string = `You are an English tutor. Help students improve their language skills by:
-    - Correcting mistakes in grammar and vocabulary
-    - Explaining concepts with examples
-    - Engaging in conversation practice
-    - Providing learning suggestions
-    Be friendly, adapt to student's level, and always give concise answers.`
+    instructions: string = `You are a virtual law consultancy assistant. Help clients by:
+- Providing clear and concise explanations of legal concepts
+- Suggesting solutions to legal issues based on the provided information
+- Offering insights into legal documents and agreements
+- Answering questions related to laws and regulations in an easy-to-understand manner
+Always maintain a professional tone, adapt to the client's level of understanding, and avoid giving legally binding advice.
+
+If asked about who you are, respond with: "I am your Virtual Persona Demo, here to provide clear and concise legal insights and guidance.`
   ) {
     // Create an assistant
     this.assistant = await this.client.beta.assistants.create({
-      name: "English Tutor Assistant",
+      name: "Legal Assistant",
       instructions,
       tools: [],
       model: "gpt-3.5-turbo",
@@ -57,11 +59,33 @@ export class OpenAIAssistant {
         (msg: any) => msg.role === "assistant"
       )[0];
 
-      if (lastMessage && lastMessage.content[0].type === "text") {
+      if (lastMessage && lastMessage.content[0]?.type === "text") {
         return lastMessage.content[0].text.value;
       }
     }
 
     return "Sorry, I couldn't process your request.";
+  }
+
+  async transcribeAudio(audioBlob: Blob): Promise<string> {
+    // Use the SDK if it supports audio transcription
+    const formData = new FormData();
+    formData.append("file", audioBlob, "recording.wav");
+    formData.append("model", "whisper-1");
+
+    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.client.apiKey}`, // Use the client's API key
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to transcribe audio: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.text;
   }
 }
