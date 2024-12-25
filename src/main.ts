@@ -44,8 +44,8 @@ async function fetchAccessToken(): Promise<string> {
   return data.token;
 }
 
-// Initialize streaming avatar session
-async function initializeAvatarSession() {
+// Start streaming avatar session
+async function startAvatarSession() {
   // Disable start button immediately to prevent double clicks
   startButton.disabled = true;
 
@@ -59,13 +59,13 @@ async function initializeAvatarSession() {
     await openaiAssistant.initialize();
 
     const selectedLanguage = languageSelect.value; // Get selected language from dropdown
-    sessionData = await avatar.createStartAvatar({
+    sessionData = await avatar.startSession({
       quality: AvatarQuality.Medium,
       avatarName: "Dexter_Lawyer_Sitting_public",
       language: selectedLanguage,
     });
 
-    console.log("Session data:", sessionData);
+    console.log("Session started with data:", sessionData);
 
     // Enable end button
     endButton.disabled = false;
@@ -74,8 +74,8 @@ async function initializeAvatarSession() {
     avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
     avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
   } catch (error) {
-    console.error("Failed to initialize avatar session:", error);
-    // Re-enable start button if initialization fails
+    console.error("Failed to start avatar session:", error);
+    // Re-enable start button if session fails to start
     startButton.disabled = false;
   }
 }
@@ -210,7 +210,7 @@ async function transcribeAudio(audioBlob: Blob) {
 }
 
 // Event listeners for buttons
-startButton.addEventListener("click", initializeAvatarSession);
+startButton.addEventListener("click", startAvatarSession);
 endButton.addEventListener("click", terminateAvatarSession);
 speakButton.addEventListener("click", handleSpeak);
 userSpeakButton.addEventListener("click", handleStartSpeaking);
@@ -247,7 +247,7 @@ languages.forEach((language) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  initializeAvatarSession();
+  startAvatarSession();
 });
 
 // Listen for language selection changes
@@ -268,7 +268,7 @@ languageSelect.addEventListener("change", async () => {
 
     // Reinitialize session with the new language
     console.log("Reinitializing session with new language...");
-    await initializeAvatarSession();
+    await startAvatarSession();
 
     console.log(
       "Session restarted successfully with language:",
