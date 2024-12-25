@@ -1,4 +1,4 @@
-mport StreamingAvatar, {
+import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
   TaskType,
