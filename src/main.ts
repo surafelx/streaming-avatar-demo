@@ -1,136 +1,79 @@
-import StreamingAvatar, {
-  AvatarQuality,
-  StreamingEvents,
-  TaskType,
-} from "@heygen/streaming-avatar";
-import { OpenAIAssistant } from "./openai-assistant";
+// Define types for variables
+let openaiAssistant: any; // Replace `any` with the correct type if available
+let avatar: any;         // Replace `any` with the correct type
+let sessionData: any;    // Replace `any` with the correct type
 
-let openaiAssistant = null;
+// Safely get DOM elements with type assertions
+const startButton = document.getElementById('startButton') as HTMLButtonElement | null;
+const endButton = document.getElementById('endButton') as HTMLButtonElement | null;
+const userSpeakButton = document.getElementById('userSpeakButton') as HTMLButtonElement | null;
+const languageSelect = document.getElementById('languageSelect') as HTMLSelectElement | null;
+const userInput = document.getElementById('userInput') as HTMLInputElement | null;
+const videoElement = document.getElementById('videoElement') as HTMLVideoElement | null;
+const bookAppointmentButton = document.getElementById('bookAppointmentButton') as HTMLButtonElement | null;
 
-// Audio recording and analysis variables
-let mediaRecorder = null;
-const audioChunks = [];
-
-// DOM elements
-const videoElement = document.getElementById("avatarVideo");
-const startButton = document.getElementById("startSession");
-const endButton = document.getElementById("endSession");
-const speakButton = document.getElementById("speakButton");
-const userSpeakButton = document.getElementById("userSpeakButton");
-const bookAppointmentButton = document.getElementById("bookAppointmentButton");
-const userInput = document.getElementById("userInput");
-const languageSelect = document.getElementById("languageSelect");
-
-let avatar = null;
-let sessionData = null;
-
-// Helper function to fetch access token
-async function fetchAccessToken() {
-  const apiKey = import.meta.env.VITE_HEYGEN_API_KEY;
-  const response = await fetch(
-    "https://api.heygen.com/v1/streaming.create_token",
-    {
-      method: "POST",
-      headers: { "x-api-key": apiKey },
-    }
-  );
-
-  const { data } = await response.json();
-  return data.token;
-}
-
-// Initialize streaming avatar session
-async function initializeAvatarSession() {
+// Event listener for start button
+startButton?.addEventListener('click', () => {
   startButton.disabled = true;
+  endButton?.disabled = false;
+});
+
+// Event listener for end button
+endButton?.addEventListener('click', () => {
+  endButton.disabled = true;
+  startButton?.disabled = false;
+});
+
+// Handle user speaking button
+userSpeakButton?.addEventListener('click', async () => {
+  if (userInput) {
+    const userMessage = userInput.value;
+    userInput.value = '';
+
+    // Process user message with openaiAssistant (example implementation)
+    const response = await openaiAssistant?.generateResponse(userMessage);
+    console.log('AI Response:', response);
+  }
+});
+
+// Handle language selection
+languageSelect?.addEventListener('change', (event) => {
+  const selectedLanguage = (event.target as HTMLSelectElement).value;
+  console.log('Selected Language:', selectedLanguage);
+});
+
+// Initialize video stream
+async function startVideoStream() {
+  if (!videoElement) return;
 
   try {
-    const token = await fetchAccessToken();
-    avatar = new StreamingAvatar({ token });
-
-    const openaiApiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    openaiAssistant = new OpenAIAssistant(openaiApiKey);
-    await openaiAssistant.initialize();
-
-    const selectedLanguage = languageSelect.value;
-    sessionData = await avatar.createStartAvatar({
-      quality: AvatarQuality.Medium,
-      avatarName: "Dexter_Lawyer_Sitting_public",
-      language: selectedLanguage,
-    });
-
-    console.log("Session data:", sessionData);
-    endButton.disabled = false;
-    userSpeakButton.disabled = false;
-
-    avatar.on(StreamingEvents.STREAM_READY, handleStreamReady);
-    avatar.on(StreamingEvents.STREAM_DISCONNECTED, handleStreamDisconnected);
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    videoElement.srcObject = stream;
+    await videoElement.play();
   } catch (error) {
-    console.error("Failed to initialize avatar session:", error);
-    startButton.disabled = false;
+    console.error('Error accessing video stream:', error);
   }
 }
 
-// Handle when avatar stream is ready
-function handleStreamReady(event) {
-  if (event.detail && videoElement) {
-    videoElement.srcObject = event.detail;
-    videoElement.onloadedmetadata = () => {
-      videoElement.play().catch(console.error);
-    };
-  } else {
-    console.error("Stream is not available");
-  }
-}
+// Stop video stream
+function stopVideoStream() {
+  if (!videoElement || !videoElement.srcObject) return;
 
-// Handle stream disconnection
-function handleStreamDisconnected() {
-  console.log("Stream disconnected");
+  const stream = videoElement.srcObject as MediaStream;
+  const tracks = stream.getTracks();
+  tracks.forEach((track) => track.stop());
   videoElement.srcObject = null;
-  startButton.disabled = false;
-  endButton.disabled = true;
 }
 
-// End the avatar session
-async function terminateAvatarSession() {
-  if (!avatar || !sessionData) return;
+// Start and end video stream handlers
+startButton?.addEventListener('click', startVideoStream);
+endButton?.addEventListener('click', stopVideoStream);
 
-  await avatar.stopAvatar();
-  videoElement.srcObject = null;
-  avatar = null;
-}
+// Calendly booking button
+if (bookAppointmentButton) {
+  declare const Calendly: any; // Replace with the correct type if available
 
-// Handle speaking event
-async function handleSpeak() {
-  if (avatar && openaiAssistant && userInput.value) {
-    try {
-      const response = await openaiAssistant.getResponse(userInput.value);
-
-      // Check if user requested an appointment
-      if (userInput.value.toLowerCase().includes("appointment")) {
-        openCalendlyWidget();
-        return;
-      }
-
-      await avatar.speak({
-        text: response,
-        taskType: TaskType.REPEAT,
-      });
-    } catch (error) {
-      console.error("Error getting response:", error);
-    }
-    userInput.value = "";
-  }
-}
-
-// Open Calendly widget for booking
-function openCalendlyWidget() {
-  Calendly.initPopupWidget({
-    url: "https://calendly.com/farhansidiqui/30min",
+  bookAppointmentButton.addEventListener('click', () => {
+    Calendly.showPopupWidget('https://calendly.com/example');
   });
 }
-
-// Event listeners
-startButton.addEventListener("click", initializeAvatarSession);
-endButton.addEventListener("click", terminateAvatarSession);
-speakButton.addEventListener("click", handleSpeak);
-bookAppointmentButton.addEventListener("click", openCalendlyWidget);
