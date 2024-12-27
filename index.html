@@ -9,6 +9,16 @@
       href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
     />
     <title>Virtual Persona 360 Demo</title>
+    <!-- Calendly widget -->
+    <link
+      href="https://assets.calendly.com/assets/external/widget.css"
+      rel="stylesheet"
+    />
+    <script
+      src="https://assets.calendly.com/assets/external/widget.js"
+      type="text/javascript"
+      async
+    ></script>
   </head>
 
   <body>
@@ -52,26 +62,20 @@
           </select>
         </section>
 
-        <!-- Session Controls -->
-        <section role="group">
-          <button id="startSession">Start Session</button>
-          <button id="endSession" disabled>End Session</button>
-          <button id="userSpeakButton" disabled>Speak</button>
-        </section>
+        <!-- Avatar Control Buttons -->
+        <button id="startSession">Start Session</button>
+        <button id="endSession" disabled>End Session</button>
+        <button id="speakButton">AI Speak</button>
+        <button id="userSpeakButton" disabled>Speak</button>
+        <button id="bookAppointmentButton">Book Appointment</button>
+      </section>
 
-        <!-- User Input Section -->
-        <section role="group">
-          <input
-            type="text"
-            id="userInput"
-            placeholder="Type something to talk to the avatar..."
-            aria-label="User input"
-          />
-          <button id="speakButton" role="button">Send</button>
-        </section>
+      <!-- User Input Section -->
+      <section>
+        <label for="userInput">Enter Text:</label>
+        <input id="userInput" type="text" placeholder="Ask the avatar..." />
       </section>
     </main>
-
-    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="./script.js"></script>
   </body>
 </html>
