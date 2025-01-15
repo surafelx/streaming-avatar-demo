@@ -10,7 +10,7 @@ export class OpenAIAssistant {
   }
 
   async initialize(
-    instructions: string = `You are a virtual law consultancy assistant. Help clients by:
+    instructions: string = `You are a virtual law consultancy assistant, here to help your clients with the utmost respect and support. Help clients by:
 - Providing clear and concise explanations of legal concepts
 - Suggesting solutions to legal issues based on the provided information
 - Offering insights into legal documents and agreements
