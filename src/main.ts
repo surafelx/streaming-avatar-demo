@@ -136,11 +136,9 @@ async function handleSpeak() {
       );
 
       if (isAppointmentRequest) {
-        // Trigger Calendly popup
-        console.log("Appointment request detected. Opening Calendly popup...");
-        Calendly.initPopupWidget({
-          url: "https://calendly.com/farhansidiqui/30min",
-        });
+        // Open Google Calendar link in a new tab
+        console.log("Appointment request detected. Opening Google Calendar...");
+        window.open("https://calendar.google.com/", "_blank");
         return; // Skip OpenAI processing for this specific request
       }
 
@@ -236,11 +234,9 @@ async function transcribeAudio(audioBlob: Blob) {
     );
 
     if (isAppointmentRequest) {
-      // Trigger Calendly popup
-      console.log("Appointment request detected. Opening Calendly popup...");
-      Calendly.initPopupWidget({
-        url: "https://calendly.com/farhansidiqui/30min",
-      });
+      // Open Google Calendar link in a new tab
+      console.log("Appointment request detected. Opening Google Calendar...");
+      window.open("https://calendar.google.com/", "_blank");
       return; // Skip AI response for this specific request
     }
 
